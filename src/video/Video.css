@@ -1,0 +1,1 @@
+.video{display:flex;gap:22px;padding:35px 0 55px;overflow:hidden}.video iframe{width:435px;height:245px;border:0;border-radius:12px;box-shadow:0 8px 20px rgba(23,59,112,.18)}@media(max-width:700px){.video{flex-direction:column;padding:25px 14px 45px}.video iframe{width:100%;height:auto;aspect-ratio:16/9}}
