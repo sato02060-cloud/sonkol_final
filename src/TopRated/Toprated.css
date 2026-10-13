@@ -1,1 +1,128 @@
-@import "../popular/Popular.css";
+.toprated-page {
+  min-height: 70vh;
+  padding: 40px 0 65px;
+  background: #f7f0df;
+}
+
+.toprated-heading {
+  border-left: 5px solid #ffc400;
+  padding-left: 17px;
+  margin-bottom: 30px;
+}
+
+.toprated-heading span {
+  color: #173b70;
+  font-size: 11px;
+  letter-spacing: 3px;
+  font-weight: 900;
+}
+
+.toprated-heading h1 {
+  color: #173b70;
+  font:
+    700 32px Georgia,
+    serif;
+  margin: 8px 0;
+}
+
+.toprated-heading p {
+  color: #776c59;
+  margin: 0;
+}
+
+.toprated-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 22px 16px;
+}
+
+.toprated-card {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 10px;
+  border: 1px solid #e4d7b9;
+  background: #fffaf0;
+  transition: transform 0.2s;
+}
+
+.toprated-card:hover {
+  transform: translateY(-4px);
+}
+
+.toprated-card img {
+  display: block;
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+}
+
+.toprated-rating {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  z-index: 1;
+  background: #173b70;
+  border: 2px solid #ffc400;
+  color: white;
+  border-radius: 20px;
+  padding: 7px 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.toprated-info {
+  padding: 12px;
+}
+
+.toprated-info h3 {
+  color: #173b70;
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0 0 6px;
+  min-height: 40px;
+}
+
+.toprated-info p {
+  color: #82745d;
+  font-size: 12px;
+  margin: 0;
+}
+
+.toprated-message {
+  text-align: center;
+  padding: 40px 10px;
+  color: #173b70;
+}
+
+@media (max-width: 1000px) {
+  .toprated-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .toprated-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 10px;
+  }
+
+  .toprated-card img {
+    height: 220px;
+  }
+}
+
+@media (max-width: 480px) {
+  .toprated-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toprated-card img {
+    height: 225px;
+  }
+
+  .toprated-heading h1 {
+    font-size: 26px;
+  }
+}
