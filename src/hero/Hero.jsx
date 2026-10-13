@@ -1,165 +1,185 @@
 import React, { useContext, useEffect, useState } from "react";
-import axios from "axios";
-import { API_KEY } from "../API_KAY/api";
 import { useNavigate } from "react-router-dom";
+import { API_KEY } from "../API_KAY/api";
+import { MovieContext } from "../context/RootContext";
 import "./Hero.css";
-import { MovieContext } from "../context/RootContext.jsx";
 
 const Hero = () => {
-  const [movies, setMovies] = useState([]);
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
   const { lang } = useContext(MovieContext);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    let active = true;
+  const [activeTab, setActiveTab] = useState("popular");
+  const [movies, setMovies] = useState([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    const loadMovies = async () => {
+  const language = lang || "ky-KG";
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchMovies = async () => {
       setLoading(true);
+      setMovies([]);
 
       try {
-        const response = await axios.get(
-          "https://api.themoviedb.org/3/discover/movie",
-          {
-            params: {
-              api_key: API_KEY,
-              language: lang || "ky-KG",
-              with_origin_country: "KG",
-              sort_by: "primary_release_date.desc",
-              "release_date.lte": new Date().toISOString().slice(0, 10),
-              page: 1,
-              include_adult: false,
-            },
-          },
+        const today = new Date();
+        const date = [
+          today.getFullYear(),
+          String(today.getMonth() + 1).padStart(2, "0"),
+          String(today.getDate()).padStart(2, "0"),
+        ].join("-");
+
+        const sortBy =
+          activeTab === "popular"
+            ? "popularity.desc"
+            : "primary_release_date.desc";
+
+        const requests = [1, 2, 3].map(async (page) => {
+          const params = new URLSearchParams({
+            api_key: API_KEY,
+            language,
+            with_origin_country: "KG",
+            sort_by: sortBy,
+            include_adult: "false",
+            "release_date.lte": date,
+            page: String(page),
+          });
+
+          const response = await fetch(
+            `https://api.themoviedb.org/3/discover/movie?${params}`,
+            { signal: controller.signal },
+          );
+
+          if (!response.ok) {
+            throw new Error(`TMDB error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          return data.results || [];
+        });
+
+        const results = await Promise.all(requests);
+
+        const uniqueMovies = Array.from(
+          new Map(
+            results
+              .flat()
+              .filter(
+                (movie) =>
+                  movie.poster_path &&
+                  movie.release_date &&
+                  movie.release_date <= date &&
+                  movie.original_language !== "en",
+              )
+              .map((movie) => [movie.id, movie]),
+          ).values(),
         );
 
-        if (active) {
-          setMovies(
-            (response.data.results || [])
-              .filter((movie) => movie.poster_path && movie.release_date)
-              .slice(0, 10),
-          );
+        if (!controller.signal.aborted) {
+          setMovies(uniqueMovies.slice(0, 12));
         }
       } catch (error) {
-        console.error(error);
-        if (active) setMovies([]);
+        if (error.name !== "AbortError") {
+          console.error("Кинолорду жүктөөдө ката кетти:", error);
+          if (!controller.signal.aborted) setMovies([]);
+        }
       } finally {
-        if (active) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
-    loadMovies();
+    fetchMovies();
 
-    return () => {
-      active = false;
-    };
-  }, [lang]);
+    return () => controller.abort();
+  }, [activeTab, language]);
 
-  const translations = {
-    "ky-KG": {
-      title: "Кыргыз кино дүйнөсүнө кош келиңиз!",
-      subtitle: "Кыргыз тасмаларын көрүңүз. Жаңы окуялар ушул жерден башталат.",
-      placeholder: "Тасма издөө...",
-      search: "Издөө",
-      featured: "Кыргыз тасмалары",
-      loading: "Тасмалар жүктөлүүдө...",
-      empty: "Кыргыз тасмалары азырынча табылган жок.",
-      watch: "Маалымат",
-    },
-    "ru-RU": {
-      title: "Добро пожаловать в мир кыргызского кино!",
-      subtitle: "Открывайте кыргызские фильмы и новые истории.",
-      placeholder: "Найти фильм...",
-      search: "Поиск",
-      featured: "Кыргызские фильмы",
-      loading: "Загрузка фильмов...",
-      empty: "Кыргызские фильмы пока не найдены.",
-      watch: "Подробнее",
-    },
-    "en-US": {
-      title: "Welcome to Kyrgyz cinema!",
-      subtitle: "Discover Kyrgyz films and new stories.",
-      placeholder: "Search for a movie...",
-      search: "Search",
-      featured: "Kyrgyz films",
-      loading: "Loading movies...",
-      empty: "No Kyrgyz movies found yet.",
-      watch: "Details",
-    },
-  };
+  const handleSearch = (event) => {
+    event.preventDefault();
 
-  const t = translations[lang] || translations["ky-KG"];
-
-  const doSearch = () => {
-    const value = query.trim();
-    if (value) navigate(`/search/${encodeURIComponent(value)}`);
+    if (query.trim()) {
+      navigate(`/search/${encodeURIComponent(query.trim())}`);
+    }
   };
 
   return (
-    <>
-      <section className="hero">
-        <div className="hero-overlay" />
-        <div className="container hero-container">
-          <div className="hero-content">
-            <div className="hero-kicker">ТАТТЫБҮБҮ ТУРСУНБАЕВА АТЫНДАГЫ</div>
-            <h1>{t.title}</h1>
-            <p>{t.subtitle}</p>
+    <div className="hero">
+      <div className="hero-content">
+        <p className="hero-kicker">СОҢ-КӨЛ КИНОТЕАТРЫ</p>
+        <h1>Кыргыз кино дүйнөсүнө кош келиңиз!</h1>
+        <p>Кыргызстандын мыкты тасмаларын бир жерден көрүңүз.</p>
 
-            <div className="hero-search">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && doSearch()}
-                placeholder={t.placeholder}
-              />
-              <button onClick={doSearch}>{t.search}</button>
-            </div>
+        <form className="hero-search" onSubmit={handleSearch}>
+          <input
+            type="text"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Кино издөө..."
+          />
+          <button type="submit">Издөө</button>
+        </form>
+      </div>
+
+      <div className="hero-movies">
+        <div className="hero-movies-header">
+          <h2>Кыргыз кинолору</h2>
+
+          <div className="hero-buttons">
+            <button
+              type="button"
+              className={activeTab === "popular" ? "active" : ""}
+              onClick={() => setActiveTab("popular")}
+            >
+              Популярдуу
+            </button>
+
+            <button
+              type="button"
+              className={activeTab === "new" ? "active" : ""}
+              onClick={() => setActiveTab("new")}
+            >
+              Жаңы кинолор
+            </button>
           </div>
         </div>
-      </section>
 
-      <section className="hero-movies">
-        <div className="container">
-          <div className="section-title-row">
-            <h2>{t.featured}</h2>
-            <span>СОҢ-КӨЛ</span>
-          </div>
+        {loading ? (
+          <p className="hero-message">Кинолор жүктөлүүдө...</p>
+        ) : movies.length === 0 ? (
+          <p className="hero-message">Кыргыз кинолору табылган жок.</p>
+        ) : (
+          <div className="hero-movie-grid">
+            {movies.map((movie) => (
+              <div
+                className="hero-movie-card"
+                key={movie.id}
+                onClick={() => navigate(`/movie/${movie.id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(`/movie/${movie.id}`);
+                  }
+                }}
+              >
+                <img
+                  src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                  alt={movie.title || movie.original_title}
+                  loading="lazy"
+                />
 
-          {loading ? (
-            <p className="hero-message">{t.loading}</p>
-          ) : movies.length === 0 ? (
-            <p className="hero-message">{t.empty}</p>
-          ) : (
-            <div className="hero-movies-row">
-              {movies.map((movie) => (
-                <div
-                  className="hero-movie-card"
-                  key={movie.id}
-                  onClick={() => navigate(`/movie/${movie.id}`)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") navigate(`/movie/${movie.id}`);
-                  }}
-                >
-                  <img
-                    src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                    alt={movie.title}
-                    loading="lazy"
-                  />
-                  <div className="hero-movie-info">
-                    <h3>{movie.title}</h3>
-                    <p>{movie.release_date?.slice(0, 4)}</p>
-                    <span>{t.watch} →</span>
-                  </div>
+                <div className="hero-movie-info">
+                  <h3>{movie.title || movie.original_title}</h3>
+                  <p>{movie.release_date.slice(0, 4)}</p>
+                  <span>Толугураак</span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-    </>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
